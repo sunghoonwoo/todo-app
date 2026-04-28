@@ -302,16 +302,22 @@
 
     .clear-btn:hover { color: #ef4444; }
 
-    /* 설치 배너 */
+    /* 설치 배너 (하단 고정) */
     .install-banner {
       display: none;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
       color: #fff;
-      padding: 12px 20px;
+      padding: 14px 20px 20px;
       font-size: 0.88rem;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+      z-index: 50;
     }
 
     .install-banner.visible { display: flex; }
@@ -402,13 +408,6 @@
   </style>
 </head>
 <body>
-  <!-- 설치 배너 -->
-  <div class="install-banner" id="install-banner">
-    <span>홈 화면에 추가하면 앱처럼 사용할 수 있어요!</span>
-    <button class="install-banner-btn" id="install-btn">설치</button>
-    <button class="install-banner-close" id="install-close">✕</button>
-  </div>
-
   <!-- iOS 안내 모달 -->
   <div class="ios-modal-backdrop" id="ios-modal">
     <div class="ios-modal">
@@ -427,6 +426,13 @@
       </div>
       <button class="ios-modal-close" id="ios-modal-close">닫기</button>
     </div>
+  </div>
+
+  <!-- 설치 배너 (하단 고정) -->
+  <div class="install-banner" id="install-banner">
+    <span>홈 화면에 추가하면 앱처럼 사용할 수 있어요!</span>
+    <button class="install-banner-btn" id="install-btn">설치</button>
+    <button class="install-banner-close" id="install-close">✕</button>
   </div>
 
   <div class="app">
