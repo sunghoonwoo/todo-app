@@ -301,9 +301,134 @@
     }
 
     .clear-btn:hover { color: #ef4444; }
+
+    /* 설치 배너 */
+    .install-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      padding: 12px 20px;
+      font-size: 0.88rem;
+    }
+
+    .install-banner.visible { display: flex; }
+
+    .install-banner span { flex: 1; line-height: 1.4; }
+
+    .install-banner-btn {
+      background: #fff;
+      color: #6366f1;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .install-banner-close {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.7);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* iOS 안내 모달 */
+    .ios-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .ios-modal-backdrop.visible { display: flex; }
+
+    .ios-modal {
+      background: #fff;
+      border-radius: 20px 20px 0 0;
+      padding: 24px 24px 36px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .ios-modal h3 { font-size: 1.1rem; margin-bottom: 16px; color: #333; }
+
+    .ios-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .ios-step-num {
+      background: #6366f1;
+      color: #fff;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .ios-step p { font-size: 0.9rem; color: #555; line-height: 1.5; margin-top: 2px; }
+
+    .ios-modal-close {
+      width: 100%;
+      margin-top: 16px;
+      background: #f0f2f5;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 0.95rem;
+      color: #555;
+      cursor: pointer;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
+  <!-- 설치 배너 -->
+  <div class="install-banner" id="install-banner">
+    <span>홈 화면에 추가하면 앱처럼 사용할 수 있어요!</span>
+    <button class="install-banner-btn" id="install-btn">설치</button>
+    <button class="install-banner-close" id="install-close">✕</button>
+  </div>
+
+  <!-- iOS 안내 모달 -->
+  <div class="ios-modal-backdrop" id="ios-modal">
+    <div class="ios-modal">
+      <h3>📲 홈 화면에 추가하기</h3>
+      <div class="ios-step">
+        <div class="ios-step-num">1</div>
+        <p>하단의 <strong>공유 버튼</strong> (□↑) 을 탭하세요</p>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">2</div>
+        <p>메뉴를 아래로 스크롤해서 <strong>"홈 화면에 추가"</strong> 를 탭하세요</p>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">3</div>
+        <p>오른쪽 상단 <strong>"추가"</strong> 를 탭하면 완료!</p>
+      </div>
+      <button class="ios-modal-close" id="ios-modal-close">닫기</button>
+    </div>
+  </div>
+
   <div class="app">
     <div class="header">
       <h1>✅ To-Do</h1>
@@ -493,6 +618,47 @@
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js');
+    }
+
+    // 이미 설치된 경우(standalone) 배너 표시 안 함
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    if (!isInstalled) {
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const banner = document.getElementById('install-banner');
+      const iosModal = document.getElementById('ios-modal');
+
+      let deferredPrompt = null;
+
+      if (isIOS) {
+        banner.classList.add('visible');
+        document.getElementById('install-btn').addEventListener('click', () => {
+          iosModal.classList.add('visible');
+        });
+      } else {
+        window.addEventListener('beforeinstallprompt', e => {
+          e.preventDefault();
+          deferredPrompt = e;
+          banner.classList.add('visible');
+        });
+        document.getElementById('install-btn').addEventListener('click', async () => {
+          if (!deferredPrompt) return;
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') banner.classList.remove('visible');
+          deferredPrompt = null;
+        });
+      }
+
+      document.getElementById('install-close').addEventListener('click', () => {
+        banner.classList.remove('visible');
+      });
+      document.getElementById('ios-modal-close').addEventListener('click', () => {
+        iosModal.classList.remove('visible');
+      });
+      iosModal.addEventListener('click', e => {
+        if (e.target === iosModal) iosModal.classList.remove('visible');
+      });
     }
   </script>
 </body>
