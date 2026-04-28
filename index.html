@@ -32,26 +32,21 @@
       color: #fff;
     }
 
-    .header h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-    }
+    .header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; }
 
-    .stats {
-      margin-top: 6px;
-      font-size: 0.85rem;
-      opacity: 0.85;
-    }
+    .stats { margin-top: 6px; font-size: 0.85rem; opacity: 0.85; }
 
     .input-area {
       display: flex;
+      flex-direction: column;
       gap: 8px;
-      padding: 20px 20px 16px;
+      padding: 16px 20px;
       border-bottom: 1px solid #f0f0f0;
     }
 
-    .input-area input {
+    .input-row { display: flex; gap: 8px; }
+
+    .input-area input[type="text"] {
       flex: 1;
       border: 1.5px solid #e2e2e2;
       border-radius: 10px;
@@ -61,9 +56,47 @@
       transition: border-color 0.2s;
     }
 
-    .input-area input:focus { border-color: #6366f1; }
+    .input-area input[type="text"]:focus { border-color: #6366f1; }
 
-    .input-area button {
+    .date-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .date-row label {
+      font-size: 0.82rem;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    .input-area input[type="date"] {
+      flex: 1;
+      border: 1.5px solid #e2e2e2;
+      border-radius: 10px;
+      padding: 7px 12px;
+      font-size: 0.85rem;
+      outline: none;
+      color: #555;
+      transition: border-color 0.2s;
+    }
+
+    .input-area input[type="date"]:focus { border-color: #6366f1; }
+
+    .date-clear {
+      background: none;
+      border: none;
+      color: #bbb;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      transition: color 0.15s;
+    }
+
+    .date-clear:hover { color: #ef4444; }
+
+    .input-area button[type="submit"] {
       background: #6366f1;
       color: #fff;
       border: none;
@@ -74,8 +107,8 @@
       transition: background 0.2s, transform 0.1s;
     }
 
-    .input-area button:hover { background: #4f46e5; }
-    .input-area button:active { transform: scale(0.95); }
+    .input-area button[type="submit"]:hover { background: #4f46e5; }
+    .input-area button[type="submit"]:active { transform: scale(0.95); }
 
     .filters {
       display: flex;
@@ -103,11 +136,7 @@
       font-weight: 600;
     }
 
-    .list {
-      list-style: none;
-      padding: 8px 0;
-      min-height: 60px;
-    }
+    .list { list-style: none; padding: 8px 0; min-height: 60px; }
 
     .list-empty {
       text-align: center;
@@ -118,7 +147,7 @@
 
     .item {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 12px;
       padding: 12px 20px;
       transition: background 0.15s;
@@ -138,10 +167,12 @@
       accent-color: #6366f1;
       cursor: pointer;
       flex-shrink: 0;
+      margin-top: 2px;
     }
 
+    .item-body { flex: 1; min-width: 0; }
+
     .item-text {
-      flex: 1;
       font-size: 0.95rem;
       color: #333;
       word-break: break-word;
@@ -152,6 +183,20 @@
       text-decoration: line-through;
       color: #bbb;
     }
+
+    .item-due {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .due-normal  { background: #f0f0f0; color: #888; }
+    .due-today   { background: #fff3e0; color: #e67e00; }
+    .due-overdue { background: #ffeaea; color: #e53e3e; }
+    .due-done    { background: #f0f0f0; color: #bbb; text-decoration: line-through; }
 
     .item-delete {
       background: none;
@@ -197,14 +242,22 @@
     </div>
 
     <div class="input-area">
-      <input id="input" type="text" placeholder="새로운 할 일 입력..." maxlength="100" />
-      <button id="add-btn" title="추가">＋</button>
+      <div class="input-row">
+        <input id="input" type="text" placeholder="새로운 할 일 입력..." maxlength="100" />
+        <button type="submit" id="add-btn" title="추가">＋</button>
+      </div>
+      <div class="date-row">
+        <label for="date-input">마감일</label>
+        <input id="date-input" type="date" />
+        <button class="date-clear" id="date-clear" title="날짜 지우기">✕</button>
+      </div>
     </div>
 
     <div class="filters">
       <button class="active" data-filter="all">전체</button>
       <button data-filter="active">진행 중</button>
       <button data-filter="done">완료</button>
+      <button data-filter="overdue">기한 초과</button>
     </div>
 
     <ul class="list" id="list"></ul>
@@ -219,45 +272,79 @@
     let todos = JSON.parse(localStorage.getItem('todos') || '[]');
     let filter = 'all';
 
-    const input = document.getElementById('input');
-    const list  = document.getElementById('list');
-    const stats = document.getElementById('stats');
+    const input     = document.getElementById('input');
+    const dateInput = document.getElementById('date-input');
+    const list      = document.getElementById('list');
+    const stats     = document.getElementById('stats');
     const remaining = document.getElementById('remaining');
+
+    function todayStr() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function dueStatus(due, done) {
+      if (!due) return null;
+      if (done) return 'done';
+      if (due < todayStr()) return 'overdue';
+      if (due === todayStr()) return 'today';
+      return 'normal';
+    }
+
+    function dueLabel(due, done) {
+      const status = dueStatus(due, done);
+      if (!status) return '';
+      const formatted = due.replace(/-/g, '.');
+      const labels = {
+        done:    { cls: 'due-done',    text: `📅 ${formatted}` },
+        overdue: { cls: 'due-overdue', text: `⚠️ ${formatted} 기한 초과` },
+        today:   { cls: 'due-today',   text: `🔔 오늘까지` },
+        normal:  { cls: 'due-normal',  text: `📅 ${formatted}` },
+      };
+      const { cls, text } = labels[status];
+      return `<span class="item-due ${cls}">${text}</span>`;
+    }
 
     function save() {
       localStorage.setItem('todos', JSON.stringify(todos));
     }
 
     function render() {
-      const filtered = todos.filter(t =>
-        filter === 'all'    ? true :
-        filter === 'active' ? !t.done :
-                              t.done
-      );
+      const today = todayStr();
+      const filtered = todos.filter(t => {
+        if (filter === 'active')  return !t.done;
+        if (filter === 'done')    return t.done;
+        if (filter === 'overdue') return !t.done && t.due && t.due < today;
+        return true;
+      });
 
       list.innerHTML = filtered.length === 0
-        ? `<li class="list-empty">${filter === 'done' ? '완료된 항목이 없습니다' : '할 일을 추가해보세요!'}</li>`
+        ? `<li class="list-empty">${filter === 'overdue' ? '기한 초과 항목이 없습니다 🎉' : filter === 'done' ? '완료된 항목이 없습니다' : '할 일을 추가해보세요!'}</li>`
         : filtered.map(t => `
             <li class="item ${t.done ? 'done' : ''}" data-id="${t.id}">
               <input type="checkbox" ${t.done ? 'checked' : ''} data-action="toggle" />
-              <span class="item-text">${escHtml(t.text)}</span>
+              <div class="item-body">
+                <div class="item-text">${escHtml(t.text)}</div>
+                ${dueLabel(t.due, t.done)}
+              </div>
               <button class="item-delete" data-action="delete" title="삭제">✕</button>
             </li>
           `).join('');
 
-      const total  = todos.length;
-      const done   = todos.filter(t => t.done).length;
-      const active = total - done;
+      const total   = todos.length;
+      const done    = todos.filter(t => t.done).length;
+      const overdue = todos.filter(t => !t.done && t.due && t.due < today).length;
+      const active  = total - done;
 
-      stats.textContent = `총 ${total}개 · 완료 ${done}개`;
+      stats.textContent = `총 ${total}개 · 완료 ${done}개${overdue > 0 ? ` · 초과 ${overdue}개` : ''}`;
       remaining.textContent = `남은 항목 ${active}개`;
     }
 
     function addTodo() {
       const text = input.value.trim();
       if (!text) return;
-      todos.unshift({ id: Date.now(), text, done: false });
+      todos.unshift({ id: Date.now(), text, done: false, due: dateInput.value || null });
       input.value = '';
+      dateInput.value = '';
       save();
       render();
     }
@@ -268,6 +355,7 @@
 
     document.getElementById('add-btn').addEventListener('click', addTodo);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
+    document.getElementById('date-clear').addEventListener('click', () => { dateInput.value = ''; });
 
     list.addEventListener('click', e => {
       const item = e.target.closest('[data-id]');
