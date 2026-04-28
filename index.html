@@ -408,6 +408,26 @@
   </style>
 </head>
 <body>
+  <!-- Android 안내 모달 -->
+  <div class="ios-modal-backdrop" id="android-modal">
+    <div class="ios-modal">
+      <h3>📲 홈 화면에 추가하기</h3>
+      <div class="ios-step">
+        <div class="ios-step-num">1</div>
+        <p>Chrome 브라우저 오른쪽 상단 <strong>"⋮" 버튼</strong>을 탭하세요</p>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">2</div>
+        <p><strong>"앱 설치"</strong> 또는 <strong>"홈 화면에 추가"</strong>를 탭하세요</p>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">3</div>
+        <p><strong>"설치"</strong>를 탭하면 완료!</p>
+      </div>
+      <button class="ios-modal-close" id="android-modal-close">닫기</button>
+    </div>
+  </div>
+
   <!-- iOS 안내 모달 -->
   <div class="ios-modal-backdrop" id="ios-modal">
     <div class="ios-modal">
@@ -630,22 +650,46 @@
       navigator.serviceWorker.register('./sw.js');
     }
 
-    // 이미 설치된 경우(standalone) 배너 표시 안 함
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
     if (!isInstalled) {
-      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      const banner = document.getElementById('install-banner');
-      const iosModal = document.getElementById('ios-modal');
+      const isIOS     = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const isAndroid = /android/i.test(navigator.userAgent);
+      const banner      = document.getElementById('install-banner');
+      const iosModal    = document.getElementById('ios-modal');
+      const androidModal = document.getElementById('android-modal');
 
       let deferredPrompt = null;
 
+      // iOS: 항상 배너 표시
       if (isIOS) {
         banner.classList.add('visible');
         document.getElementById('install-btn').addEventListener('click', () => {
           iosModal.classList.add('visible');
         });
-      } else {
+      }
+
+      // Android: beforeinstallprompt 또는 수동 안내
+      if (isAndroid) {
+        banner.classList.add('visible');
+        window.addEventListener('beforeinstallprompt', e => {
+          e.preventDefault();
+          deferredPrompt = e;
+        });
+        document.getElementById('install-btn').addEventListener('click', async () => {
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') banner.classList.remove('visible');
+            deferredPrompt = null;
+          } else {
+            androidModal.classList.add('visible');
+          }
+        });
+      }
+
+      // 데스크탑: beforeinstallprompt 있을 때만 배너 표시
+      if (!isIOS && !isAndroid) {
         window.addEventListener('beforeinstallprompt', e => {
           e.preventDefault();
           deferredPrompt = e;
@@ -663,11 +707,19 @@
       document.getElementById('install-close').addEventListener('click', () => {
         banner.classList.remove('visible');
       });
+
       document.getElementById('ios-modal-close').addEventListener('click', () => {
         iosModal.classList.remove('visible');
       });
       iosModal.addEventListener('click', e => {
         if (e.target === iosModal) iosModal.classList.remove('visible');
+      });
+
+      document.getElementById('android-modal-close').addEventListener('click', () => {
+        androidModal.classList.remove('visible');
+      });
+      androidModal.addEventListener('click', e => {
+        if (e.target === androidModal) androidModal.classList.remove('visible');
       });
     }
   </script>
