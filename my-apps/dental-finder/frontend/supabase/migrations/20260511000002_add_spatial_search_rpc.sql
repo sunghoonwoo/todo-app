@@ -4,10 +4,10 @@ CREATE OR REPLACE FUNCTION search_clinics_by_bounds(
   ne_lat double precision,
   ne_lng double precision,
   search_term text DEFAULT '',
-  report_ids text[] DEFAULT NULL
+  report_ids uuid[] DEFAULT NULL
 )
 RETURNS TABLE(
-  clinic_id text,
+  clinic_id uuid,
   name text,
   address text,
   city text,
