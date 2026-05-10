@@ -8,6 +8,18 @@ const supabase = createClient(
 
 const PAGE_SIZE = 20;
 
+async function getClinicIdsWithReports(client: typeof supabase): Promise<string[]> {
+  const { data, error } = await client
+    .from("user_price_reports")
+    .select("clinic_id");
+
+  if (error) {
+    console.error("[getClinicIdsWithReports]", error.message);
+    return [];
+  }
+  return [...new Set((data ?? []).map((r) => r.clinic_id))];
+}
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const swLat = sp.get("sw_lat");
@@ -22,16 +34,33 @@ export async function GET(req: NextRequest) {
   const hasBounds = !!(swLat && swLng && neLat && neLng);
 
   try {
-    if (priceReportOnly) {
-      const { data: rdata, error: rerror } = await supabase
-        .from("user_price_reports")
-        .select("clinic_id, report_id, visit_id, extra_recommended");
+    if (hasBounds) {
+      const reportIds: string[] | undefined = priceReportOnly
+        ? await getClinicIdsWithReports(supabase)
+        : undefined;
 
-      if (rerror) {
-        return NextResponse.json({ error: rerror.message }, { status: 500 });
+      if (priceReportOnly && reportIds?.length === 0) {
+        return NextResponse.json({ clinics: [] });
       }
 
-      const clinicIdsWithReports = [...new Set((rdata ?? []).map((r) => r.clinic_id))];
+      // Use PostGIS spatial search via RPC
+      const { data, error } = await supabase.rpc("search_clinics_by_bounds", {
+        sw_lat: parseFloat(swLat),
+        sw_lng: parseFloat(swLng),
+        ne_lat: parseFloat(neLat),
+        ne_lng: parseFloat(neLng),
+        search_term: search.trim(),
+        report_ids: reportIds ?? null,
+      });
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ clinics: (data ?? []) as any[] });
+    }
+
+    if (priceReportOnly) {
+      const clinicIdsWithReports = await getClinicIdsWithReports(supabase);
       if (clinicIdsWithReports.length === 0) {
         return NextResponse.json({ clinics: [] });
       }
@@ -42,37 +71,13 @@ export async function GET(req: NextRequest) {
         .in("clinic_id", clinicIdsWithReports)
         .eq("is_active", true);
 
-      if (hasBounds) {
-        q = q
-          .gte("lat", parseFloat(swLat))
-          .lte("lat", parseFloat(neLat))
-          .gte("lng", parseFloat(swLng))
-          .lte("lng", parseFloat(neLng));
-      } else if (city) {
+      if (city) {
         q = q.eq("city", city);
         if (district) q = q.eq("district", district);
       }
       if (search.trim()) q = q.ilike("name", `%${search.trim()}%`);
 
       const { data, error } = await q;
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-      return NextResponse.json({ clinics: data ?? [] });
-    }
-
-    if (hasBounds) {
-      let query = supabase
-        .from("clinics")
-        .select("clinic_id, name, address, city, district, phone, lat, lng")
-        .eq("is_active", true)
-        .gte("lat", parseFloat(swLat))
-        .lte("lat", parseFloat(neLat))
-        .gte("lng", parseFloat(swLng))
-        .lte("lng", parseFloat(neLng));
-      if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
-
-      const { data, error } = await query;
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
