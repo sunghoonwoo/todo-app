@@ -276,7 +276,7 @@ function ClinicsPageContent() {
               <button
                 onClick={handleSearchNearMe}
                 disabled={geoLoading}
-                className="flex items-center justify-center gap-1.5 min-w-[88px] h-10 px-5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white transition-all duration-200 whitespace-nowrap overflow-hidden relative"
+                className="flex items-center justify-center gap-1.5 min-w-[88px] h-10 px-5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white active:scale-95 active:bg-gray-200 transition-all duration-200 whitespace-nowrap overflow-hidden relative"
                 style={{boxShadow: '0 4px 20px rgba(99,102,241,0.15)'}}
               >
                 <span className={geoLoading ? "invisible" : ""}>내 위치</span>
@@ -288,7 +288,7 @@ function ClinicsPageContent() {
             <div className="pointer-events-auto">
               <button
                 onClick={handleSearchInThisArea}
-                className="flex items-center justify-center gap-1.5 min-w-[88px] h-10 px-5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white transition-all duration-200 whitespace-nowrap overflow-hidden"
+                className="flex items-center justify-center gap-1.5 min-w-[88px] h-10 px-5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white active:scale-95 active:bg-gray-200 transition-all duration-200 whitespace-nowrap overflow-hidden"
                 style={{boxShadow: '0 4px 20px rgba(99,102,241,0.15)'}}
               >
                 이 지역
