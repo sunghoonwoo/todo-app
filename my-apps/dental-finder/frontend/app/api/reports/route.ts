@@ -11,7 +11,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { clinicId, treatmentIds, price, visitDate, reviewText, friendlinessScore, nickname, pin, consultationType, overtreatmentPressure, explanationDetail, priceFairness, trustScore, imageUrl } = body;
 
+    console.log("[POST] Received body:", JSON.stringify({
+      clinicId, treatmentIds, price, visitDate, reviewText, friendlinessScore,
+      nickname, consultationType, overtreatmentPressure, explanationDetail,
+      priceFairness, trustScore, hasImage: !!imageUrl, pinLength: pin?.length
+    }));
+
     if (!clinicId || !treatmentIds?.length) {
+      console.error("[POST] Missing required fields — clinicId:", clinicId, "treatmentIds:", treatmentIds);
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -35,14 +42,21 @@ export async function POST(req: NextRequest) {
       image_url: imageUrl || null,
     }));
 
+    console.log("[POST] Inserting rows:", JSON.stringify(rows.map((r: any) => ({ ...r, pin: "[REDACTED]" }))));
+
     const { data, error } = await supabase
       .from("user_price_reports")
       .insert(rows)
       .select("report_id");
 
     if (error) {
-      console.error("[POST] Insert error:", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[POST] Supabase insert error:", error.message, "code:", error.code, "details:", error.details, "hint:", error.hint);
+      return NextResponse.json({
+        error: `Supabase 오류: ${error.message}`,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      }, { status: 500 });
     }
 
     if (!data || data.length === 0) {
@@ -53,7 +67,7 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log("[POST] Created:", data.length, "reports");
+    console.log("[POST] Created:", data.length, "reports — reportIds:", data.map((r: { report_id: string }) => r.report_id));
     return NextResponse.json({ reportIds: data.map((r: { report_id: string }) => r.report_id) });
   } catch (e) {
     console.error("[API POST /reports]", e);

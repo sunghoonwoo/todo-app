@@ -209,13 +209,13 @@ export default function PriceReportForm({ clinicId, initialValues, onSuccess, on
       try {
         const trustScore = calcTrustScore();
         const hashedPin = await hashPin(pin);
-        const { reportIds } = await api.createReport({
+        const payload = {
           clinicId,
           treatmentIds,
           price: parsedPrice,
           visitDate: visitDate || null,
           reviewText: reviewText.trim() || null,
-          friendlinessScore: friendlinessScore,
+          friendlinessScore,
           nickname: nickname.trim() || null,
           pin: hashedPin,
           consultationType,
@@ -224,7 +224,10 @@ export default function PriceReportForm({ clinicId, initialValues, onSuccess, on
           priceFairness,
           trustScore,
           imageUrl: finalImageUrl ?? undefined,
-        });
+        };
+        console.log("[PriceReportForm] Submitting report:", JSON.stringify({ ...payload, pin: "[REDACTED]" }));
+        const { reportIds } = await api.createReport(payload);
+        console.log("[PriceReportForm] Report created successfully:", reportIds);
         setSubmitting(false);
         onSuccess(reportIds);
       } catch (e) {
