@@ -34,17 +34,9 @@ function ClinicsPageContent() {
   const [page, setPage] = useState(0);
   const [searchBounds, setSearchBounds] = useState<{ sw: { lat: number; lng: number }; ne: { lat: number; lng: number } } | null>(null);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
-  const [mapLockHeight, setMapLockHeight] = useState('45vh');
   const mapRef = useRef<NearbyMapHandle>(null);
 
   const effectiveCity = city === "전국" ? "" : city;
-
-  useEffect(() => {
-    const targetHeight = Math.floor(window.innerHeight * 0.45);
-    setMapLockHeight(`${targetHeight}px`);
-    document.body.style.overscrollBehaviorY = 'none';
-    return () => { document.body.style.overscrollBehaviorY = ''; };
-  }, []);
 
   const { clinics, loading, pagedClinics } = useClinics({
     tab, userPos, city: effectiveCity, district, search, page, priceReportOnly, bounds: tab === "nearby" ? searchBounds : null
@@ -180,12 +172,12 @@ function ClinicsPageContent() {
   }, [searchParams, router]);
 
   return (
-    <div className="flex flex-col h-screen px-2 overflow-hidden">
+    <main className="w-full min-h-screen bg-gray-50">
       {/* 로딩 바 - fixed at top of screen */}
       <div className={`fixed top-0 left-0 right-0 z-[100] h-[3px] bg-[#6366F1] transition-opacity duration-200 ${loading ? "opacity-100" : "opacity-0 pointer-events-none"}`} />
 
       {/* 탭 */}
-      <div className="flex rounded-[40px] bg-white p-1 mb-4" style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}>
+      <div className="flex rounded-[40px] bg-white p-1 mx-2 mt-4" style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}>
         {(["nearby", "region"] as Tab[]).map((t) => (
           <button
             key={t}
@@ -206,7 +198,7 @@ function ClinicsPageContent() {
 
       {/* 지역 선택 (region 탭) */}
       {tab === "region" && (
-        <div className="mb-4 flex gap-3">
+        <div className="mb-4 flex gap-3 px-2">
           <select
             value={city}
             onChange={(e) => {
@@ -237,7 +229,7 @@ function ClinicsPageContent() {
 
       {/* 위치 오류 */}
       {tab === "nearby" && geoError && (
-        <div className="bg-yellow-50/90 backdrop-blur-sm border border-yellow-200 rounded-[40px] p-4 mb-4 text-sm text-yellow-800 space-y-2">
+        <div className="bg-yellow-50/90 backdrop-blur-sm border border-yellow-200 rounded-[40px] p-4 mb-4 mx-2 text-sm text-yellow-800 space-y-2">
           <div className="font-medium">{geoError}</div>
           <div className="text-xs text-yellow-600">Safari <strong>AA → 웹사이트 설정 → 위치 → 물어보기</strong></div>
           <div className="flex gap-3 pt-1">
@@ -249,7 +241,7 @@ function ClinicsPageContent() {
 
       {/* 위치 버튼 (nearby탭, 위치 없음) */}
       {tab === "nearby" && !userPos && !geoError && (
-        <div className="flex flex-col items-center py-16 gap-4">
+        <div className="flex flex-col items-center py-16 gap-4 px-2">
           <div className="text-gray-400 text-sm font-medium">내 주변 치과를 찾으려면 위치 권한이 필요합니다</div>
           <button onClick={handleSearchNearMe} disabled={geoLoading} className="relative flex items-center justify-center gap-2 bg-gradient-to-r from-[#818CF8] to-[#6366F1] hover:from-[#6366F1] hover:to-[#4F46E5] text-white font-semibold px-8 py-3.5 rounded-[40px] text-sm transition disabled:opacity-50 whitespace-nowrap overflow-hidden min-w-[160px]"
             style={{boxShadow: '0 8px 25px rgba(99,102,241,0.25)'}}
@@ -264,22 +256,19 @@ function ClinicsPageContent() {
 
       {/* 지도 + 통합 검색 버튼 (nearby탭, 위치 있음) */}
       {tab === "nearby" && userPos && (
-        <div className="mb-4 relative w-full overflow-hidden shrink-0">
-          {/* Inner map wrapper — strict pixel lock */}
-          <div className="w-full rounded-[32px] touch-none" style={{ height: mapLockHeight }}>
-            <div className="w-full h-full overflow-hidden rounded-[32px]" style={{boxShadow: '0 8px 30px rgba(0,0,0,0.04)'}}>
-              <NearbyMap
-                ref={mapRef}
-                userPos={userPos}
-                clinics={clinics.filter((c) => c.lat != null && c.lng != null).map((c) => ({
-                  clinic_id: c.clinic_id, name: c.name, lat: c.lat!, lng: c.lng!,
-                  color: getBadgeHex(c.reportSummary),
-                }))}
-                selectedId={selectedMarkerId}
-                onSelect={(id) => setSelectedMarkerId((prev) => prev === id ? null : id)}
-                onDoubleClick={(id) => router.push(`/clinics/${id}`)}
-              />
-            </div>
+        <div className="w-full h-[40vh] relative border-b shadow-sm">
+          <div className="w-full h-full touch-pan-x touch-pan-y" style={{ touchAction: 'pan-x pan-y' }}>
+            <NearbyMap
+              ref={mapRef}
+              userPos={userPos}
+              clinics={clinics.filter((c) => c.lat != null && c.lng != null).map((c) => ({
+                clinic_id: c.clinic_id, name: c.name, lat: c.lat!, lng: c.lng!,
+                color: getBadgeHex(c.reportSummary),
+              }))}
+              selectedId={selectedMarkerId}
+              onSelect={(id) => setSelectedMarkerId((prev) => prev === id ? null : id)}
+              onDoubleClick={(id) => router.push(`/clinics/${id}`)}
+            />
           </div>
           {/* 통합 검색 버튼 - 지도 위에 고정 */}
           <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-50 pointer-events-none">
@@ -310,7 +299,7 @@ function ClinicsPageContent() {
       )}
 
       {/* 검색 + 필터 */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="w-full px-2 py-4">
         {(tab === "region" || (tab === "nearby" && userPos)) && (
         <div className="mb-4 space-y-3">
           <div className="flex flex-row items-center gap-2 h-[56px]">
@@ -375,7 +364,7 @@ function ClinicsPageContent() {
         />
       )}
       </div>
-    </div>
+    </main>
   );
 }
 
