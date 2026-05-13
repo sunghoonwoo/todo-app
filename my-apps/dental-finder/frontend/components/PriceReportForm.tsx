@@ -105,7 +105,7 @@ export default function PriceReportForm({ clinicId, initialValues, onSuccess, on
   }
 
   function handlePinChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setPin(e.target.value.replace(/[^0-9]/g, "").slice(0, 4));
+    setPin(e.target.value.replace(/[^0-9]/g, "").slice(0, 4).trim());
   }
 
   function resizeImage(file: File, maxW: number): Promise<Blob> {
