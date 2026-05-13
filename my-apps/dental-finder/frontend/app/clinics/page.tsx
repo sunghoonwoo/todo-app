@@ -34,13 +34,14 @@ function ClinicsPageContent() {
   const [page, setPage] = useState(0);
   const [searchBounds, setSearchBounds] = useState<{ sw: { lat: number; lng: number }; ne: { lat: number; lng: number } } | null>(null);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
-  const [initialLockHeight, setInitialLockHeight] = useState(0);
+  const [mapLockHeight, setMapLockHeight] = useState('45vh');
   const mapRef = useRef<NearbyMapHandle>(null);
 
   const effectiveCity = city === "전국" ? "" : city;
 
   useEffect(() => {
-    setInitialLockHeight(window.innerHeight);
+    const targetHeight = Math.floor(window.innerHeight * 0.45);
+    setMapLockHeight(`${targetHeight}px`);
     document.body.style.overscrollBehaviorY = 'none';
     return () => { document.body.style.overscrollBehaviorY = ''; };
   }, []);
@@ -179,7 +180,7 @@ function ClinicsPageContent() {
   }, [searchParams, router]);
 
   return (
-    <div className="px-2">
+    <div className="flex flex-col h-screen px-2 overflow-hidden">
       {/* 로딩 바 - fixed at top of screen */}
       <div className={`fixed top-0 left-0 right-0 z-[100] h-[3px] bg-[#6366F1] transition-opacity duration-200 ${loading ? "opacity-100" : "opacity-0 pointer-events-none"}`} />
 
@@ -263,9 +264,9 @@ function ClinicsPageContent() {
 
       {/* 지도 + 통합 검색 버튼 (nearby탭, 위치 있음) */}
       {tab === "nearby" && userPos && (
-        <div className="mb-4 relative w-full overflow-hidden">
+        <div className="mb-4 relative w-full overflow-hidden shrink-0">
           {/* Inner map wrapper — strict pixel lock */}
-          <div className="w-full rounded-[32px]" style={{ height: `${initialLockHeight}px`, touchAction: 'pan-x pan-y' }}>
+          <div className="w-full rounded-[32px] touch-none" style={{ height: mapLockHeight }}>
             <div className="w-full h-full overflow-hidden rounded-[32px]" style={{boxShadow: '0 8px 30px rgba(0,0,0,0.04)'}}>
               <NearbyMap
                 ref={mapRef}
@@ -309,7 +310,8 @@ function ClinicsPageContent() {
       )}
 
       {/* 검색 + 필터 */}
-      {(tab === "region" || (tab === "nearby" && userPos)) && (
+      <div className="flex-1 overflow-y-auto">
+        {(tab === "region" || (tab === "nearby" && userPos)) && (
         <div className="mb-4 space-y-3">
           <div className="flex flex-row items-center gap-2 h-[56px]">
             <input
@@ -372,6 +374,7 @@ function ClinicsPageContent() {
           PAGE_SIZE={PAGE_SIZE}
         />
       )}
+      </div>
     </div>
   );
 }
