@@ -34,9 +34,16 @@ function ClinicsPageContent() {
   const [page, setPage] = useState(0);
   const [searchBounds, setSearchBounds] = useState<{ sw: { lat: number; lng: number }; ne: { lat: number; lng: number } } | null>(null);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+  const [initialLockHeight, setInitialLockHeight] = useState(0);
   const mapRef = useRef<NearbyMapHandle>(null);
 
   const effectiveCity = city === "전국" ? "" : city;
+
+  useEffect(() => {
+    setInitialLockHeight(window.innerHeight);
+    document.body.style.overscrollBehaviorY = 'none';
+    return () => { document.body.style.overscrollBehaviorY = ''; };
+  }, []);
 
   const { clinics, loading, pagedClinics } = useClinics({
     tab, userPos, city: effectiveCity, district, search, page, priceReportOnly, bounds: tab === "nearby" ? searchBounds : null
@@ -256,19 +263,22 @@ function ClinicsPageContent() {
 
       {/* 지도 + 통합 검색 버튼 (nearby탭, 위치 있음) */}
       {tab === "nearby" && userPos && (
-        <div className="mb-4 relative" style={{ height: '35vh' }}>
-          <div className="rounded-[32px] overflow-hidden h-full" style={{boxShadow: '0 8px 30px rgba(0,0,0,0.04)'}}>
-            <NearbyMap
-              ref={mapRef}
-              userPos={userPos}
-              clinics={clinics.filter((c) => c.lat != null && c.lng != null).map((c) => ({
-                clinic_id: c.clinic_id, name: c.name, lat: c.lat!, lng: c.lng!,
-                color: getBadgeHex(c.reportSummary),
-              }))}
-              selectedId={selectedMarkerId}
-              onSelect={(id) => setSelectedMarkerId((prev) => prev === id ? null : id)}
-              onDoubleClick={(id) => router.push(`/clinics/${id}`)}
-            />
+        <div className="mb-4 relative w-full overflow-hidden">
+          {/* Inner map wrapper — strict pixel lock */}
+          <div className="w-full rounded-[32px]" style={{ height: `${initialLockHeight}px`, touchAction: 'pan-x pan-y' }}>
+            <div className="w-full h-full overflow-hidden rounded-[32px]" style={{boxShadow: '0 8px 30px rgba(0,0,0,0.04)'}}>
+              <NearbyMap
+                ref={mapRef}
+                userPos={userPos}
+                clinics={clinics.filter((c) => c.lat != null && c.lng != null).map((c) => ({
+                  clinic_id: c.clinic_id, name: c.name, lat: c.lat!, lng: c.lng!,
+                  color: getBadgeHex(c.reportSummary),
+                }))}
+                selectedId={selectedMarkerId}
+                onSelect={(id) => setSelectedMarkerId((prev) => prev === id ? null : id)}
+                onDoubleClick={(id) => router.push(`/clinics/${id}`)}
+              />
+            </div>
           </div>
           {/* 통합 검색 버튼 - 지도 위에 고정 */}
           <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-50 pointer-events-none">
